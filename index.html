@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chữ rơi 3D với sao nhấp nháy</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: black; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.134.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+        // Thiết lập scene, camera và renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Thêm OrbitControls để tương tác chuột
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // Đặt vị trí camera
+        camera.position.z = 20;
+
+        // Tạo sao nhấp nháy với kích thước cố định
+        const starCount = 1000;
+        const starGeometry = new THREE.BufferGeometry();
+        const starPositions = new Float32Array(starCount * 3);
+        const starOpacities = new Float32Array(starCount);
+        const starTwinkleSpeeds = new Float32Array(starCount);
+
+        for (let i = 0; i < starCount; i++) {
+            starPositions[i * 3] = (Math.random() - 0.5) * 200; // x
+            starPositions[i * 3 + 1] = (Math.random() - 0.5) * 200; // y
+            starPositions[i * 3 + 2] = (Math.random() - 0.5) * 200; // z
+            starOpacities[i] = Math.random(); // Độ mờ ban đầu
+            starTwinkleSpeeds[i] = 0.005 + Math.random() * 0.01; // Tốc độ nhấp nháy
+        }
+
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        starGeometry.setAttribute('opacity', new THREE.BufferAttribute(starOpacities, 1));
+
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 0.3, // Kích thước cố định cho tất cả các ngôi sao
+            transparent: true,
+            opacity: 1,
+            vertexColors: false,
+            blending: THREE.AdditiveBlending,
+            sizeAttenuation: true // Kích thước không thay đổi theo khoảng cách
+        });
+
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+
+        // Danh sách các dòng chữ chúc Vy không dấu
+        const words = [
+            'Chuc Vy', 
+            'Yeu Vy', 
+            'Vy La Nhat', 
+            'Chuc Vy Ngay Tot', 
+            'Vy Rat De Thuong', 
+            'Chuc Vy Luon Hanh Phuc',
+        ];
+        const texts = [];
+
+        // Tạo font loader
+        const fontLoader = new FontLoader();
+        fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font) => {
+            // Tạo 200 dòng chữ ngẫu nhiên
+            for (let i = 0; i < 200; i++) {
+                const text = words[Math.floor(Math.random() * words.length)];
+                const geometry = new TextGeometry(text, {
+                    font: font,
+                    size: 0.2,
+                    height: 0.1,
+                });
+                const material = new THREE.MeshBasicMaterial({ color: 0xff69b4 });
+                const mesh = new THREE.Mesh(geometry, material);
+
+                // Vị trí ngẫu nhiên trong không gian
+                mesh.position.set(
+                    (Math.random() - 0.5) * 20,
+                    Math.random() * 10 + 10, // Bắt đầu từ trên cao
+                    (Math.random() - 0.5) * 20
+                );
+                mesh.userData = { velocity: -0.02 - Math.random() * 0.01 }; // Tốc độ rơi ngẫu nhiên
+                scene.add(mesh);
+                texts.push(mesh);
+            }
+
+            // Thêm dòng chữ cố định
+            const fixedTextGeometry = new TextGeometry('from Tran Hai Bang with love', {
+                font: font,
+                size: 1,
+                height: 0.1,
+            });
+            const fixedTextMesh = new THREE.Mesh(fixedTextGeometry, new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0, 0) })); // Màu khởi tạo
+            fixedTextMesh.position.set(-10, -5, -10); // Vị trí cố định
+            scene.add(fixedTextMesh);
+
+            // Hàm để cập nhật màu sắc
+            function updateColor() {
+                const time = Date.now() * 0.002; // Thay đổi tốc độ màu
+                const r = Math.sin(time) * 0.5 + 0.5; // Màu đỏ
+                const g = Math.sin(time + 2) * 0.5 + 0.5; // Màu xanh lá
+                const b = Math.sin(time + 4) * 0.5 + 0.5; // Màu xanh dương
+                fixedTextMesh.material.color.setRGB(r, g, b); // Cập nhật màu
+            }
+
+            // Hàm để cập nhật nhấp nháy sao
+            function updateStars() {
+                const time = Date.now() * 0.001;
+                for (let i = 0; i < starCount; i++) {
+                    starOpacities[i] = 0.5 + 0.5 * Math.sin(time * starTwinkleSpeeds[i]);
+                }
+                starGeometry.attributes.opacity.needsUpdate = true;
+            }
+
+            // Cập nhật màu sắc và vị trí trong hàm animation
+            function animate() {
+                requestAnimationFrame(animate);
+
+                // Cập nhật vị trí các dòng chữ
+                texts.forEach((text) => {
+                    text.position.y += text.userData.velocity; // Di chuyển xuống
+                    if (text.position.y < -10) { // Reset khi ra khỏi tầm nhìn
+                        text.position.y = 10 + Math.random() * 5;
+                        text.position.x = (Math.random() - 0.5) * 20;
+                        text.position.z = (Math.random() - 0.5) * 20;
+                    }
+                });
+
+                updateColor(); // Cập nhật màu sắc
+                updateStars(); // Cập nhật nhấp nháy sao
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+        });
+
+        // Xử lý thay đổi kích thước cửa sổ
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
