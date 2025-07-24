@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hiệu ứng không gian</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="spaceCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('spaceCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Thiết lập kích thước canvas
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Tải nhiều hình ảnh ngôi sao
+        const starImages = [
+            '1.jpg', // Thay bằng đường dẫn hoặc URL đến hình ảnh 1
+            '2.jpg', // Thay bằng đường dẫn hoặc URL đến hình ảnh 2
+            '3.jpg',
+            '4.jpg',
+            '5.jpg',
+            '6.jpg'
+              // Thay bằng đường dẫn hoặc URL đến hình ảnh 3
+        ].map(src => {
+            const img = new Image();
+            img.src = src;
+            return img;
+        });
+
+        // Tạo mảng các ngôi sao
+        const stars = [];
+        const numStars = 500;
+
+        // Tạo đối tượng ngôi sao
+        function Star() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.z = Math.random() * canvas.width;
+            this.size = Math.random() * 10 + 5; // Kích thước cơ bản của hình ảnh
+            // Chọn ngẫu nhiên một hình ảnh từ starImages
+            this.image = starImages[Math.floor(Math.random() * starImages.length)];
+
+            this.move = function() {
+                this.z -= 2; // Tốc độ di chuyển
+                if (this.z <= 0) {
+                    this.z = canvas.width;
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    // Chọn lại hình ảnh ngẫu nhiên khi ngôi sao được đặt lại
+                    this.image = starImages[Math.floor(Math.random() * starImages.length)];
+                }
+            };
+
+            this.show = function() {
+                let x, y, size;
+                const scale = canvas.width / this.z;
+                x = (this.x - canvas.width / 2) * scale + canvas.width / 2;
+                y = (this.y - canvas.height / 2) * scale + canvas.height / 2;
+                size = this.size * scale;
+
+                // Thêm hiệu ứng phát sáng
+                ctx.shadowBlur = 10 * scale; // Độ mờ của ánh sáng, tỷ lệ với scale
+                ctx.shadowColor = 'rgba(255, 105, 180, 0.5)'; // Màu ánh sáng (trắng, hơi mờ)
+
+                // Vẽ hình ảnh ngôi sao
+                ctx.drawImage(this.image, x - size / 2, y - size / 2, size, size);
+
+                // Đặt lại shadow để không ảnh hưởng đến các đối tượng khác
+                ctx.shadowBlur = 0;
+                ctx.shadowColor = 'transparent';
+            };
+        }
+
+        // Khởi tạo các ngôi sao
+        for (let i = 0; i < numStars; i++) {
+            stars.push(new Star());
+        }
+
+        // Hàm animation
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // Hiệu ứng mờ dần
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let star of stars) {
+                star.move();
+                star.show();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Xử lý thay đổi kích thước cửa sổ
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Đảm bảo tất cả hình ảnh được tải trước khi bắt đầu animation
+        let loadedImages = 0;
+        starImages.forEach(img => {
+            img.onload = () => {
+                loadedImages++;
+                if (loadedImages === starImages.length) {
+                    animate();
+                }
+            };
+            img.onerror = () => {
+                console.error(`Failed to load image: ${img.src}`);
+            };
+        });
+    </script>
+</body>
+</html>
